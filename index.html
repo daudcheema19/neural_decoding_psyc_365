@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Learning for Neural Decoding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --ink-soft: #3a3832;
+    --ink-mute: #7a7870;
+    --paper: #f8f5ef;
+    --paper-warm: #ede9e0;
+    --paper-deep: #e2ddd2;
+    --accent: #b85c2a;
+    --accent-light: #f0d4c2;
+    --accent-pale: #faf2ec;
+    --teal: #1a6b5e;
+    --teal-light: #c8e8e2;
+    --gold: #8a6a1a;
+    --gold-light: #f0e4be;
+    --section-max: 860px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.75;
+    font-size: 17px;
+  }
+
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--paper);
+    border-bottom: 1px solid var(--paper-deep);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    height: 52px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 1.5rem;
+    flex-shrink: 0;
+  }
+  nav a {
+    color: var(--ink-mute);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding: 0 1.1rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  nav a:hover, nav a.active { color: var(--ink); border-bottom-color: var(--accent); }
+
+  .hero {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 5rem 2rem 4.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.03) 39px, rgba(255,255,255,0.03) 40px);
+    pointer-events: none;
+  }
+  .hero-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    margin-bottom: 1.5rem;
+    background: rgba(184,92,42,0.25);
+    padding: 4px 14px;
+    border-radius: 20px;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 700;
+    line-height: 1.15;
+    max-width: 720px;
+    margin: 0 auto 1.5rem;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent-light); }
+  .hero-meta {
+    font-size: 14px;
+    color: rgba(248,245,239,0.55);
+    max-width: 560px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+  }
+  .hero-authors { font-size: 13px; color: rgba(248,245,239,0.7); font-style: italic; }
+  .hero-journal { margin-top: 0.6rem; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(248,245,239,0.4); }
+  .ai-badge {
+    margin-top: 2rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(248,245,239,0.08);
+    border: 1px solid rgba(248,245,239,0.15);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    color: rgba(248,245,239,0.65);
+  }
+  .ai-badge strong { color: rgba(248,245,239,0.9); }
+
+  section {
+    padding: 4.5rem 2rem;
+    border-bottom: 1px solid var(--paper-deep);
+  }
+  section:nth-child(odd) { background: var(--paper); }
+  section:nth-child(even) { background: var(--paper-warm); }
+
+  .section-inner { max-width: var(--section-max); margin: 0 auto; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    color: var(--ink);
+  }
+  p { margin-bottom: 1.2rem; color: var(--ink-soft); }
+  p:last-child { margin-bottom: 0; }
+
+  /* HOVER TOOLTIPS */
+  .term {
+    border-bottom: 1.5px dotted var(--accent);
+    cursor: help;
+    position: relative;
+    display: inline;
+  }
+  .term .tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    border-radius: 8px;
+    width: 240px;
+    text-align: left;
+    z-index: 200;
+    font-weight: 400;
+    pointer-events: none;
+  }
+  .term .tip::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--ink);
+  }
+  .term:hover .tip { display: block; }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-pale);
+    padding: 1.2rem 1.5rem;
+    border-radius: 0 8px 8px 0;
+    margin: 2rem 0;
+    font-size: 16px;
+  }
+  .callout.teal { border-left-color: var(--teal); background: var(--teal-light); }
+  .callout.teal p { color: #0d3d35; }
+  .callout.gold { border-left-color: var(--gold); background: var(--gold-light); }
+  .callout.gold p { color: #3d2a00; }
+  .callout p { color: #4a2a10; }
+  .callout strong { color: var(--ink); }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+    margin-top: 2rem;
+  }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--paper-deep);
+    border-radius: 12px;
+    padding: 1.4rem 1.5rem;
+  }
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  .card-icon.orange { background: var(--accent-light); }
+  .card-icon.teal { background: var(--teal-light); }
+  .card-icon.gold { background: var(--gold-light); }
+  .card h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink); }
+  .card p { font-size: 14px; margin: 0; color: var(--ink-mute); line-height: 1.6; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  .figure-box {
+    background: var(--paper);
+    border: 1px solid var(--paper-deep);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 2.5rem 0;
+  }
+  .figure-caption { font-size: 13px; color: var(--ink-mute); text-align: center; margin-top: 1rem; font-style: italic; }
+
+  .bar-chart { margin: 1rem 0; }
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bar-label { font-size: 12px; color: var(--ink-soft); width: 180px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+  .bar-track { flex: 1; height: 20px; background: var(--paper-deep); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-val { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--ink-mute); width: 40px; text-align: right; flex-shrink: 0; }
+  .bar-fill.ensemble { background: var(--ink); }
+  .bar-fill.traditional { background: #c5bfb5; }
+  .bar-fill.neural-net { background: var(--teal); }
+  .bar-fill.ml { background: var(--accent); }
+
+  .brain-chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 1.5rem 0; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 24px; font-size: 14px; font-weight: 500; }
+  .chip.a { background: var(--accent-light); color: #6b2e0f; }
+  .chip.b { background: var(--teal-light); color: #0a4038; }
+  .chip.c { background: var(--gold-light); color: #5a3e00; }
+  .chip-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .chip.a .chip-dot { background: var(--accent); }
+  .chip.b .chip-dot { background: var(--teal); }
+  .chip.c .chip-dot { background: var(--gold); }
+
+  .methods-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 14px; }
+  .methods-table th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); border-bottom: 2px solid var(--paper-deep); }
+  .methods-table td { padding: 10px 14px; border-bottom: 1px solid var(--paper-deep); color: var(--ink-soft); vertical-align: top; }
+  .methods-table tr:last-child td { border-bottom: none; }
+  .methods-table tr:hover td { background: rgba(0,0,0,0.02); }
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 12px; letter-spacing: 0.04em; }
+  .badge.new { background: var(--teal-light); color: #0a4038; }
+  .badge.trad { background: var(--paper-deep); color: var(--ink-mute); }
+
+  blockquote {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    font-style: italic;
+    color: var(--ink);
+    border-left: 4px solid var(--accent);
+    padding: 1rem 0 1rem 2rem;
+    margin: 2rem 0;
+    line-height: 1.6;
+  }
+
+  .swot { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
+  .swot-box { border-radius: 10px; padding: 1.3rem; }
+  .swot-box h4 { font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.8rem; }
+  .swot-box ul { list-style: none; font-size: 14px; line-height: 1.7; }
+  .swot-box ul li::before { content: '\2192  '; opacity: 0.6; }
+  .swot-box.strength { background: var(--teal-light); }
+  .swot-box.strength h4, .swot-box.strength li { color: #0a4038; }
+  .swot-box.weakness { background: #fce8e8; }
+  .swot-box.weakness h4, .swot-box.weakness li { color: #5a1a1a; }
+  .swot-box.future { background: var(--gold-light); }
+  .swot-box.future h4, .swot-box.future li { color: #5a3e00; }
+  .swot-box.takehome { background: var(--ink); }
+  .swot-box.takehome h4, .swot-box.takehome li { color: var(--paper); }
+  @media (max-width: 560px) { .swot { grid-template-columns: 1fr; } }
+
+  footer { background: var(--ink); color: rgba(248,245,239,0.5); text-align: center; padding: 2.5rem 2rem; font-size: 13px; }
+  footer a { color: rgba(248,245,239,0.7); }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  .reading-bar { position: fixed; top: 0; left: 0; height: 2px; background: var(--accent); z-index: 999; transition: width 0.1s linear; }
+</style>
+</head>
+<body>
+
+<div class="reading-bar" id="readingBar"></div>
+
+<nav id="mainNav">
+  <span class="nav-dot"></span>
+  <a href="#rationale">Rationale</a>
+  <a href="#question">Question</a>
+  <a href="#design">Design</a>
+  <a href="#variables">Variables</a>
+  <a href="#results">Results</a>
+  <a href="#discussion">Discussion</a>
+  <a href="#critique">Critique</a>
+</nav>
+
+<header class="hero">
+  <div class="hero-tag">eNeuro · 2020 · Neural Methods</div>
+  <h1>Machine Learning for <em>Neural Decoding</em></h1>
+  <p class="hero-meta">A guide to how modern computer tools can listen to the brain far better than the methods scientists have been using for decades.</p>
+  <p class="hero-authors">Glaser, Benjamin, Chowdhury, Perich, Miller and Kording</p>
+  <p class="hero-journal">eNeuro, Vol. 7, Issue 4 · DOI: 10.1523/ENEURO.0506-19.2020</p>
+  <div class="ai-badge">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="rgba(248,245,239,0.6)" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="rgba(248,245,239,0.6)" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span><strong>AI use:</strong> Claude (Anthropic) was used to help build this website.</span>
+  </div>
+</header>
+
+<section id="rationale">
+  <div class="section-inner reveal">
+    <div class="section-label">Rationale</div>
+    <h2>Why does this research even exist?</h2>
+
+    <p>Every time a <span class="term">neuron<span class="tip">A nerve cell in the brain. You have about 86 billion of them, and they talk to each other by firing tiny electrical signals.</span></span> fires, it sends a tiny electrical signal. Neural decoding is the process of listening to those signals and asking: what is the brain actually saying? For example, if you reach for a cup, neurons in your brain fire in a specific pattern. Researchers can record those patterns and try to predict what your hand is doing from brain activity alone.</p>
+
+    <p>For decades, the main tools scientists used for this were quite basic. Methods like <span class="term">Wiener filters<span class="tip">A math tool from the 1940s that tries to find the best straight line between brain signals and behavior. Think of drawing the "line of best fit" through a scatter plot.</span></span> and <span class="term">Kalman filters<span class="tip">A method originally developed for tracking rockets at NASA. It assumes that behavior changes smoothly over time and updates its prediction step by step. Widely used in brain research for predicting movement.</span></span> both assume the brain works in a straight line, meaning if activity doubles, the predicted behavior also doubles. But the brain is far messier and more complicated than that.</p>
+
+    <p>Meanwhile, the world of computing had a revolution. Tools like <span class="term">deep learning<span class="tip">A type of computer program loosely inspired by the brain. It learns from lots of examples and gets very good at spotting complicated patterns, like recognizing faces or translating languages.</span></span> were beating humans at tasks like recognizing images and playing chess. But neuroscientists were mostly not using these tools for brain research.</p>
+
+    <div class="callout">
+      <p><strong>The gap in knowledge:</strong> Nobody had clearly shown how much better modern computing tools could be for reading brain signals, or packaged them up so scientists could easily try them. This paper set out to fill that gap.</p>
+    </div>
+
+    <p>The big picture question is: how do we get the most useful information out of brain recordings? This matters for understanding how the brain works, and for building better <span class="term">brain-machine interfaces<span class="tip">Devices that connect the brain directly to a computer or robot. For example, a system that lets a paralyzed person move a robotic arm just by thinking about it.</span></span> that could one day help people who cannot move or speak.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon orange">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8z" stroke="#b85c2a" stroke-width="1.5"/><path d="M10 6v4l3 3" stroke="#b85c2a" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Decades of tradition</h3>
+        <p>Old, simple tools had become the default in brain science, even though everyone knew the brain is complicated and does not work in straight lines.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon teal">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="10" width="3" height="7" rx="1" fill="#1a6b5e"/><rect x="8.5" y="6" width="3" height="11" rx="1" fill="#1a6b5e"/><rect x="14" y="3" width="3" height="14" rx="1" fill="#1a6b5e"/></svg>
+        </div>
+        <h3>Untapped potential</h3>
+        <p>Powerful modern tools existed but nobody had packaged them in a way that brain scientists could easily try them out.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon gold">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3l2.4 4.8 5.3.8-3.8 3.7.9 5.2L10 15l-4.8 2.5.9-5.2L2.3 8.6l5.3-.8L10 3z" stroke="#8a6a1a" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Life-changing applications</h3>
+        <p>Better brain reading means better prosthetics. For someone with paralysis, the difference between a decent and a great brain interface is huge.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="question">
+  <div class="section-inner reveal">
+    <div class="section-label">Research Question and Hypotheses</div>
+    <h2>What were they actually trying to find out?</h2>
+
+    <blockquote>"Can modern machine learning tools do a noticeably better job of reading brain signals than the old methods, and if so, by how much?"</blockquote>
+
+    <p>The broad question in this field is: how do we best understand the information hidden inside brain activity? This paper zooms in on something testable and concrete. It compares old and new methods head to head on real brain recordings, using the exact same data for every method so the comparison is completely fair.</p>
+
+    <div class="two-col">
+      <div>
+        <div class="callout">
+          <p><strong>The specific questions:</strong></p>
+          <p>Do modern tools like <span class="term">neural networks<span class="tip">Computer programs loosely inspired by how the brain works. They learn from large amounts of data and can find complicated patterns that simpler methods miss entirely.</span></span> and <span class="term">XGBoost<span class="tip">A very popular and powerful machine learning method. It builds hundreds of small decision trees and combines them into one highly accurate prediction system. It has won countless data science competitions.</span></span> beat the old standards? Does this hold across different parts of the brain? And does the advantage grow with more data or more neurons recorded?</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout teal">
+          <p><strong>The prediction:</strong> Since the brain does not work in straight lines, tools that can capture complicated patterns should win. The authors expected modern methods to outperform the classics, especially with larger amounts of data.</p>
+        </div>
+      </div>
+    </div>
+
+    <p>What made this paper special was that nobody had done a proper, large-scale, same-data comparison before, and nobody had shared easy-to-use code so other labs could replicate it. That combination of new evidence and accessible tools is what filled the gap in the field.</p>
+  </div>
+</section>
+
+<section id="design">
+  <div class="section-inner reveal">
+    <div class="section-label">Research Design</div>
+    <h2>How was the study set up?</h2>
+
+    <p>This is a <strong>comparison study</strong>, not a traditional experiment. No new animals were used and no new data was collected. Instead, the researchers took brain recordings that already existed and ran every decoding method on the same data to see which performed best. Think of it like giving the same exam to eight students and comparing their scores.</p>
+
+    <p>They tested on three very different brain regions to make sure the results were not a fluke of one particular dataset:</p>
+
+    <div class="brain-chips">
+      <span class="chip a"><span class="chip-dot"></span>Monkey motor cortex</span>
+      <span class="chip b"><span class="chip-dot"></span>Monkey somatosensory cortex</span>
+      <span class="chip c"><span class="chip-dot"></span>Rat hippocampus</span>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <h3>Motor cortex (monkey)</h3>
+        <p>The <span class="term">motor cortex<span class="tip">The part of the brain that controls movement. When you decide to move your arm, signals originate here and travel down to your muscles.</span></span> controls movement. Monkeys reached for targets while researchers recorded from about 100 neurons and tried to predict where the hand was moving. This is the classic brain-machine interface scenario.</p>
+      </div>
+      <div class="card">
+        <h3>Somatosensory cortex (monkey)</h3>
+        <p>The <span class="term">somatosensory cortex<span class="tip">The part of the brain that processes touch and body sensations. When something touches your finger, signals eventually reach this area and you feel it.</span></span> processes touch. Monkeys had their fingers moved while researchers tried to predict which finger position the monkey was experiencing, based only on brain signals.</p>
+      </div>
+      <div class="card">
+        <h3>Hippocampus (rat)</h3>
+        <p>The <span class="term">hippocampus<span class="tip">A region deep in the brain involved in memory and navigation. It contains special "place cells" that fire when an animal is in a specific location, acting like a GPS system built into the brain.</span></span> is the brain's map. Rats ran laps on a track and the researchers tried to predict where on the track the rat was, using only brain signals.</p>
+      </div>
+    </div>
+
+    <div class="callout gold">
+      <p><strong>Why these animals and brain areas?</strong> Monkeys and rats are the most common subjects in brain research. Using three very different brain regions and two different species makes it much more convincing that the results are broadly true, not just a special case.</p>
+    </div>
+
+    <p>All methods were tested using <span class="term">cross-validation<span class="tip">A technique to make sure results are honest. You train a model on part of the data, then test it on data it has never seen. This prevents the computer from just memorizing the examples and checks whether it has genuinely learned something useful.</span></span>, which makes sure the results are not just the computer memorizing the training data.</p>
+  </div>
+</section>
+
+<section id="variables">
+  <div class="section-inner reveal">
+    <div class="section-label">Variables</div>
+    <h2>What was changed and what was measured?</h2>
+
+    <div class="two-col">
+      <div>
+        <div class="callout">
+          <p><strong>What was changed (the independent variable)</strong></p>
+          <p>The decoding method. Eight different algorithms were compared on the exact same brain recordings:</p>
+        </div>
+        <table class="methods-table">
+          <thead><tr><th>Method</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td><span class="term">Wiener Filter<span class="tip">A classic method from the 1940s. It draws the best straight line between brain signals and behavior. Simple and fast but limited by its assumption that everything is linear.</span></span></td><td><span class="badge trad">Traditional</span></td></tr>
+            <tr><td><span class="term">Kalman Filter<span class="tip">Originally developed for aerospace tracking. Assumes movement evolves smoothly over time and updates its guess at each step. Very popular in brain-machine interface research.</span></span></td><td><span class="badge trad">Traditional</span></td></tr>
+            <tr><td><span class="term">Wiener Cascade<span class="tip">A small upgrade to the Wiener Filter. After the straight-line step, it adds one nonlinear adjustment. A halfway house between old and new.</span></span></td><td><span class="badge trad">Traditional+</span></td></tr>
+            <tr><td><span class="term">Support Vector Regression<span class="tip">A method that finds the best boundary through data, even in very complicated spaces. It can handle nonlinear patterns with the right settings.</span></span></td><td><span class="badge new">Modern ML</span></td></tr>
+            <tr><td><span class="term">XGBoost<span class="tip">Combines hundreds of small decision trees, each one learning from the mistakes of the last. Extremely powerful and widely used across data science.</span></span></td><td><span class="badge new">Modern ML</span></td></tr>
+            <tr><td><span class="term">Feedforward Neural Network<span class="tip">The basic version of a neural network. Information flows one way: input signals pass through layers of processing and an answer comes out at the end.</span></span></td><td><span class="badge new">Modern ML</span></td></tr>
+            <tr><td><span class="term">LSTM and GRU<span class="tip">Special types of neural networks that have memory. They can remember what happened several steps ago, which is very useful for predicting sequences like how a movement unfolds over time.</span></span></td><td><span class="badge new">Modern ML</span></td></tr>
+            <tr><td><span class="term">Ensemble methods<span class="tip">Combining multiple models into one super-model. Like asking a panel of experts and averaging their answers rather than trusting just one person.</span></span></td><td><span class="badge new">Modern ML</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="callout teal">
+          <p><strong>What was measured (the dependent variable)</strong></p>
+          <p>Decoding accuracy, using a score called <span class="term">R squared<span class="tip">A score from 0 to 1 that tells you how well a prediction matches reality. A score of 1.0 means perfect. A score of 0 means no better than just guessing the average. Negative values mean the model is actually worse than doing nothing at all.</span></span>. It tells you how closely the computer's prediction matches what the animal was actually doing.</p>
+          <p style="margin-top:0.8rem;">The closer the score is to 1.0, the better. Higher is always better.</p>
+        </div>
+        <div class="callout gold" style="margin-top:1rem;">
+          <p><strong>Other things varied:</strong> The researchers also looked at how results changed with more or less recording time, more or fewer neurons, and different time windows. This gave a full picture of when the new tools shine most.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="section-inner reveal">
+    <div class="section-label">Results</div>
+    <h2>What did they find?</h2>
+
+    <p>The result was clear: <strong>modern tools were substantially better at reading brain signals across all three brain areas.</strong> Here is a simplified picture of how the methods compared when predicting hand movement speed from motor cortex recordings. The score is R squared, where higher means more accurate:</p>
+
+    <div class="figure-box">
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Ensemble</div>
+          <div class="bar-track"><div class="bar-fill ensemble" style="width:92%"></div></div>
+          <div class="bar-val">~.92</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">LSTM / GRU</div>
+          <div class="bar-track"><div class="bar-fill neural-net" style="width:88%"></div></div>
+          <div class="bar-val">~.88</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">XGBoost</div>
+          <div class="bar-track"><div class="bar-fill ml" style="width:83%"></div></div>
+          <div class="bar-val">~.83</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Feedforward NN</div>
+          <div class="bar-track"><div class="bar-fill ml" style="width:80%"></div></div>
+          <div class="bar-val">~.80</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Wiener Cascade</div>
+          <div class="bar-track"><div class="bar-fill traditional" style="width:64%"></div></div>
+          <div class="bar-val">~.64</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Kalman Filter</div>
+          <div class="bar-track"><div class="bar-fill traditional" style="width:58%"></div></div>
+          <div class="bar-val">~.58</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Wiener Filter</div>
+          <div class="bar-track"><div class="bar-fill traditional" style="width:52%"></div></div>
+          <div class="bar-val">~.52</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+        <span style="font-size:12px;display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;background:var(--ink);border-radius:2px;display:inline-block;"></span> Ensemble</span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;background:var(--teal);border-radius:2px;display:inline-block;"></span> Memory networks</span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;background:var(--accent);border-radius:2px;display:inline-block;"></span> Modern ML</span>
+        <span style="font-size:12px;display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;background:#c5bfb5;border-radius:2px;display:inline-block;"></span> Traditional</span>
+      </div>
+      <p class="figure-caption">Approximate accuracy scores for predicting hand movement speed from motor cortex recordings. Modern methods consistently outperform traditional approaches by a wide margin. Values reflect the pattern reported in the paper.</p>
+    </div>
+
+    <p>The same story played out across all three brain regions, though the size of the gap varied. The authors also discovered some clear patterns about when the modern advantage was biggest:</p>
+
+    <div class="cards">
+      <div class="card">
+        <h3>More data means a bigger gap</h3>
+        <p>As recordings got longer, the modern tools improved much faster than the old ones. They get better with experience in a way that simple tools cannot.</p>
+      </div>
+      <div class="card">
+        <h3>More neurons helps modern tools more</h3>
+        <p>Recording from more neurons boosted modern methods far more than traditional ones. The new tools are better at spotting patterns that span many neurons at once.</p>
+      </div>
+      <div class="card">
+        <h3>Memory networks shine for movement</h3>
+        <p><span class="term">LSTMs and GRUs<span class="tip">Types of neural networks that remember what happened in previous moments. Very useful when the order and history of events matters, like how a movement unfolds second by second.</span></span> were especially strong because movement unfolds over time and these tools can remember what happened a moment ago.</p>
+      </div>
+    </div>
+
+    <div class="callout teal" style="margin-top:2rem;">
+      <p><strong>Why the numbers matter in real life:</strong> Going from a score of about 0.55 to 0.90 is not just a small improvement on paper. For someone using a brain-powered prosthetic arm, that difference is the gap between a frustrating and clunky device and one that actually feels natural and responsive.</p>
+    </div>
+  </div>
+</section>
+
+<section id="discussion">
+  <div class="section-inner reveal">
+    <div class="section-label">Discussion</div>
+    <h2>What do the authors make of all this?</h2>
+
+    <p>The authors think the results are a clear signal that neuroscience has been missing out. The old methods are not wrong, they are just held back by a simplifying assumption: that the brain behaves in a predictable, straight-line way. It turns out that assumption is too simple for most real-world brain data.</p>
+
+    <blockquote>"Improving the performance of neural decoding algorithms allows neuroscientists to better understand the information contained in a neural population and can help to advance engineering applications such as brain-machine interfaces."</blockquote>
+
+    <div class="two-col">
+      <div>
+        <div class="callout">
+          <p><strong>For scientists in the field:</strong> Modern tools should become the new standard. If you want to claim that a brain area holds information about some behavior, you should compare against the best possible decoder, not just an old-fashioned linear one. Otherwise you might badly underestimate what is actually there.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout gold">
+          <p><strong>For everyone else:</strong> Better brain decoding speeds up real progress on devices that can help people. Think of people with diseases like <span class="term">ALS<span class="tip">A progressive disease that gradually paralyzes the body while leaving the mind intact. Patients may eventually lose the ability to speak or move on their own, but their thinking remains unaffected.</span></span> controlling a speech device with their thoughts, or people with spinal cord injuries moving robotic arms again.</p>
+        </div>
+      </div>
+    </div>
+
+    <p>One important thing the authors point out is that being good at predicting something from brain signals does not mean you understand how the brain actually does it. If a computer can tell where a rat is just from its brain activity, that does not explain how the brain builds a sense of location. Decoding tells you that information is present in the brain, not how it is stored or used. This is a really important distinction that many papers in this area get wrong.</p>
+
+    <p>They also suggest that modern tools should act as a performance ceiling. If you develop a simpler, more understandable model, you should compare it against the best modern tool to see exactly how much accuracy you are giving up for the sake of simplicity.</p>
+  </div>
+</section>
+
+<section id="critique">
+  <div class="section-inner reveal">
+    <div class="section-label">Critique</div>
+    <h2>What holds up, what falls short, and where do we go next?</h2>
+
+    <div class="swot">
+      <div class="swot-box strength">
+        <h4>Strengths</h4>
+        <ul>
+          <li>All methods tested on the same data so comparisons are genuinely fair</li>
+          <li>Proper cross-validation means results are not inflated by memorization</li>
+          <li>Three brain areas and two species make the findings broadly convincing</li>
+          <li>Code released publicly so anyone can replicate or build on it</li>
+          <li>Honest and clear about what decoding can and cannot tell us</li>
+        </ul>
+      </div>
+      <div class="swot-box weakness">
+        <h4>Weaknesses</h4>
+        <ul>
+          <li>Only existing datasets were used, which may not cover all situations</li>
+          <li>Only animal data, and human brain recordings can behave quite differently</li>
+          <li>All decoding was done after the fact, not in real time as a prosthetic would need</li>
+          <li>Fine-tuning modern tools takes effort and computing power that smaller labs may not have</li>
+          <li>Modern tools are black boxes, which makes them harder to trust in a medical device</li>
+        </ul>
+      </div>
+      <div class="swot-box future">
+        <h4>Future directions</h4>
+        <ul>
+          <li>Test with human brain recordings from real prosthetic trials</li>
+          <li>Try real-time decoding as it would work in an actual device</li>
+          <li>Build models that are both accurate and understandable</li>
+          <li>Study how models hold up across different days or different people</li>
+          <li>Apply to other types of brain signals like EEG or fMRI scans</li>
+        </ul>
+      </div>
+      <div class="swot-box takehome">
+        <h4>Take-home message</h4>
+        <ul>
+          <li>Modern tools dramatically outperform old ones and are now easy to use, so there is no good reason not to switch</li>
+          <li>But being able to decode the brain is not the same as understanding it</li>
+          <li>Use these tools to get better answers, but stay humble about what those answers actually mean</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:2.5rem;">
+      <p><strong>Do the authors' conclusions follow from the data?</strong> Mostly yes. The finding that modern tools outperform old ones is strongly supported by the comparisons. The broader suggestion that everyone should switch to modern methods is reasonable, though with very little data, simpler methods can sometimes still win, and the authors do acknowledge this. Overall the conclusions are well-grounded and the paper is scientifically honest about where the limits are.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Presented as a course assignment &nbsp;&middot;&nbsp; Paper: Glaser et al. (2020), eNeuro &nbsp;&middot;&nbsp; Code: <a href="https://github.com/kordinglab/neural_decoding" target="_blank">github.com/kordinglab/neural_decoding</a></p>
+  <p style="margin-top:0.5rem;">AI assistance: Claude (Anthropic) was used to help build this website.</p>
+</footer>
+
+<script>
+  const bar = document.getElementById('readingBar');
+  window.addEventListener('scroll', () => {
+    const total = document.body.scrollHeight - window.innerHeight;
+    bar.style.width = (window.scrollY / total * 100) + '%';
+  });
+
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  reveals.forEach(r => obs.observe(r));
+
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  const navObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  sections.forEach(s => navObs.observe(s));
+</script>
+</body>
+</html>
